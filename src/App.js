@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { experimentalStyled as styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -19,8 +19,135 @@ const Item = styled(Paper)(({ theme }) => ({
 }));
 
 const App = () => {
-	const [breakLength, setBreakLength] = useState(5);
-	const [sessionLength, setSessionLength] = useState(25);
+	const [breakLength, setBreakLength] = useState(0);
+	const [sessionLength, setSessionLength] = useState(0);
+	const [timerSession, setTimerSession] = useState(0);
+	const [timerBreak, setTimerBreak] = useState(0);
+	const [intervalId, setIntervalId] = useState(0);
+	const [changeCount, setChangeCount] = useState(false);
+	const [runningTimer, setRunningTimer] = useState(false);
+	let countSession = useRef(0);
+	let countBreak = useRef(0);
+
+	const toChangeCount = () => {
+		setChangeCount(!changeCount);
+	};
+
+	const handleStartStop = (stopInterval) => {
+		console.log('test', stopInterval);
+		if (stopInterval === true) {
+			clearInterval(intervalId);
+			setIntervalId(0);
+			setRunningTimer(false);
+			return;
+		}
+		if (intervalId) {
+			clearInterval(intervalId);
+			setIntervalId(0);
+			setRunningTimer(false);
+			return;
+		}
+
+		const newIntervalId = setInterval(() => {
+			setRunningTimer(true);
+			if (countSession.current > 0) {
+				setTimerSession((prevCount) => prevCount - 1);
+				countSession.current--;
+				if (countSession.current < 1) {
+					toChangeCount();
+					countBreak.current = breakLength * 60;
+					setTimerBreak(countBreak.current);
+				}
+			} else {
+				setTimerBreak((prevCount) => prevCount - 1);
+				countBreak.current--;
+				if (countBreak.current < 1) {
+					toChangeCount();
+					countSession.current = sessionLength * 60;
+					setTimerSession(countSession.current);
+				}
+			}
+		}, 1000);
+		setIntervalId(newIntervalId);
+	};
+
+	const getMinutes = () => {
+		const num = Math.floor(timerSession / 60);
+		return num.toString().padStart(2, '0');
+	};
+
+	const getSeconds = () => {
+		const num = timerSession % 60;
+		return num.toString().padStart(2, '0');
+	};
+
+	const getMinutesBreak = () => {
+		const num = Math.floor(timerBreak / 60);
+		return num.toString().padStart(2, '0');
+	};
+
+	const getSecondsBreak = () => {
+		const num = timerBreak % 60;
+		return num.toString().padStart(2, '0');
+	};
+
+	useEffect(() => {
+		setSessionLength(25);
+		setBreakLength(5);
+	}, []);
+
+	useEffect(() => {
+		setTimerSession(sessionLength * 60);
+		countSession.current = sessionLength * 60;
+		setTimerBreak(breakLength * 60);
+		countBreak.current = breakLength * 60;
+	}, [sessionLength, breakLength]);
+
+	const handleSessionLength = (eventId) => {
+		if (runningTimer) {
+			return;
+		}
+		if (eventId === 'session_increment') {
+			if (sessionLength >= 60) {
+				return;
+			}
+			setSessionLength(sessionLength + 1);
+		} else {
+			if (sessionLength <= 1) {
+				return;
+			}
+			setSessionLength(sessionLength - 1);
+		}
+	};
+
+	const handleBreakLength = (eventId) => {
+		if (runningTimer) {
+			return;
+		}
+		if (eventId === 'break_increment') {
+			if (breakLength >= 60) {
+				return;
+			}
+			setBreakLength(breakLength + 1);
+		} else {
+			if (breakLength <= 1) {
+				return;
+			}
+			setBreakLength(breakLength - 1);
+		}
+	};
+
+	const handleReset = () => {
+		handleStartStop(true);
+		setBreakLength(5);
+		setSessionLength(25);
+		setTimerSession(sessionLength * 60);
+		countSession.current = sessionLength * 60;
+		setTimerBreak(breakLength * 60);
+		countBreak.current = breakLength * 60;
+	};
+
+	console.log(changeCount);
 
 	return (
 		<Container maxWidth="sm">
@@ -54,7 +181,7 @@ const App = () => {
 					<Grid item xs={2}>
 						<Item
 							style={{ cursor: 'pointer' }}
-							onClick={() => setBreakLength(breakLength - 1)}
+							onClick={() => handleBreakLength('break_decrement')}
 							id="break-decrement"
 						>
 							<ArrowDownwardIcon />
@@ -70,7 +197,7 @@ const App = () => {
 					<Grid paddingRight={1} item xs={2}>
 						<Item
 							style={{ cursor: 'pointer' }}
-							onClick={() => setBreakLength(breakLength + 1)}
+							onClick={() => handleBreakLength('break_increment')}
 							id="break-increment"
 						>
 							<ArrowUpwardIcon />
@@ -78,9 +205,9 @@ const App = () => {
 					</Grid>
 					<Grid paddingLeft={1} item xs={2}>
 						<Item
-							style={{ cursor: 'pointer' }}
-							onClick={() => setSessionLength(sessionLength - 1)}
 							id="session-decrement"
+							style={{ cursor: 'pointer' }}
+							onClick={() => handleSessionLength('session_decrement')}
 						>
 							<ArrowDownwardIcon />
 						</Item>
@@ -94,9 +221,9 @@ const App = () => {
 					</Grid>
 					<Grid item xs={2}>
 						<Item
-							style={{ cursor: 'pointer' }}
-							onClick={() => setSessionLength(sessionLength + 1)}
 							id="session-increment"
+							style={{ cursor: 'pointer' }}
+							onClick={() => handleSessionLength('session_increment')}
 						>
 							<ArrowUpwardIcon />
 						</Item>
@@ -104,10 +231,12 @@ const App = () => {
 					<Grid paddingTop={3} item xs={12}>
 						<Item>
 							<Typography id="timer-label" align="center" variant="h6">
-								Session
+								{!changeCount ? 'Session' : 'Break'}
 							</Typography>
 							<Typography id="time-left" align="center" variant="h2">
-								25:00
+								{!changeCount
+									? `${getMinutes()}:${getSeconds()}`
+									: `${getMinutesBreak()}:${getSecondsBreak()}`}
 							</Typography>
 						</Item>
 					</Grid>
@@ -115,7 +244,7 @@ const App = () => {
 						<Item
 							id="start_stop"
 							style={{ cursor: 'pointer' }}
-							onClick={() => console.log('start - stop')}
+							onClick={handleStartStop}
 						>
 							<PlayCircleFilledWhiteIcon />
 							<PauseIcon />
@@ -125,7 +254,7 @@ const App = () => {
 						<Item
 							id="reset"
 							style={{ cursor: 'pointer' }}
-							onClick={() => console.log('reset')}
+							onClick={() => handleReset()}
 						>
 							<RestartAltIcon />
 						</Item>
