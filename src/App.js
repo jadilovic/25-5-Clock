@@ -21,16 +21,17 @@ const Item = styled(Paper)(({ theme }) => ({
 const App = () => {
 	const [breakLength, setBreakLength] = useState(0);
 	const [sessionLength, setSessionLength] = useState(0);
-	const [timerSession, setTimerSession] = useState(0);
-	const [timerBreak, setTimerBreak] = useState(0);
+	// const [timerSession, setTimerSession] = useState(0);
+	// const [timerBreak, setTimerBreak] = useState(0);
+	const [timeDisplay, setTimeDisplay] = useState(0);
 	const [intervalId, setIntervalId] = useState(0);
-	const [changeCount, setChangeCount] = useState(false);
 	const [runningTimer, setRunningTimer] = useState(false);
 	let countSession = useRef(0);
 	let countBreak = useRef(0);
+	let changeCount = useRef(false);
 
 	const toChangeCount = () => {
-		setChangeCount(!changeCount);
+		changeCount.current = !changeCount.current;
 	};
 
 	const handleStartStop = (stopInterval) => {
@@ -49,22 +50,29 @@ const App = () => {
 		}
 
 		const newIntervalId = setInterval(() => {
+			console.log('change count : ', changeCount.current);
 			setRunningTimer(true);
-			if (countSession.current > 0) {
-				setTimerSession((prevCount) => prevCount - 1);
+			if (countSession.current >= 0) {
+				//	setTimerSession((prevCount) => prevCount - 1);
+				setTimeDisplay((prevCount) => prevCount - 1);
 				countSession.current--;
-				if (countSession.current < 1) {
+				if (countSession.current < 0) {
+					//	setTimerSession((prevCount) => (prevCount = 0));
 					toChangeCount();
 					countBreak.current = breakLength * 60;
-					setTimerBreak(countBreak.current);
+					//		setTimerBreak(countBreak.current);
+					setTimeDisplay((prevCount) => (prevCount = countBreak.current));
 				}
 			} else {
-				setTimerBreak((prevCount) => prevCount - 1);
+				//	setTimerBreak((prevCount) => prevCount - 1);
+				setTimeDisplay((prevCount) => prevCount - 1);
 				countBreak.current--;
-				if (countBreak.current < 1) {
+				if (countBreak.current < 0) {
+					//	setTimerBreak((prevCount) => (prevCount = 0));
 					toChangeCount();
 					countSession.current = sessionLength * 60;
-					setTimerSession(countSession.current);
+					//setTimerSession(countSession.current);
+					setTimeDisplay((prevCount) => (prevCount = countSession.current));
 				}
 			}
 		}, 1000);
@@ -72,24 +80,24 @@ const App = () => {
 	};
 
 	const getMinutes = () => {
-		const num = Math.floor(timerSession / 60);
+		const num = Math.floor(timeDisplay / 60);
 		return num.toString().padStart(2, '0');
 	};
 
 	const getSeconds = () => {
-		const num = timerSession % 60;
+		const num = timeDisplay % 60;
 		return num.toString().padStart(2, '0');
 	};
 
-	const getMinutesBreak = () => {
-		const num = Math.floor(timerBreak / 60);
-		return num.toString().padStart(2, '0');
-	};
+	// const getMinutesBreak = () => {
+	// 	const num = Math.floor(timerBreak / 60);
+	// 	return num.toString().padStart(2, '0');
+	// };
 
-	const getSecondsBreak = () => {
-		const num = timerBreak % 60;
-		return num.toString().padStart(2, '0');
-	};
+	// const getSecondsBreak = () => {
+	// 	const num = timerBreak % 60;
+	// 	return num.toString().padStart(2, '0');
+	// };
 
 	useEffect(() => {
 		setSessionLength(25);
@@ -97,9 +105,10 @@ const App = () => {
 	}, []);
 
 	useEffect(() => {
-		setTimerSession(sessionLength * 60);
+		//	setTimerSession(sessionLength * 60);
+		setTimeDisplay(sessionLength * 60);
 		countSession.current = sessionLength * 60;
-		setTimerBreak(breakLength * 60);
+		//		setTimerBreak(breakLength * 60);
 		countBreak.current = breakLength * 60;
 	}, [sessionLength, breakLength]);
 
@@ -141,13 +150,15 @@ const App = () => {
 		handleStartStop(true);
 		setBreakLength(5);
 		setSessionLength(25);
-		setTimerSession(sessionLength * 60);
+		//	setTimerSession(sessionLength * 60);
+		setTimeDisplay(sessionLength * 60);
 		countSession.current = sessionLength * 60;
-		setTimerBreak(breakLength * 60);
+		//		setTimerBreak(breakLength * 60);
 		countBreak.current = breakLength * 60;
 	};
 
-	console.log(changeCount);
+	console.log('session : ', timeDisplay);
+	//	console.log('break : ', timerBreak);
 
 	return (
 		<Container maxWidth="sm">
@@ -231,12 +242,13 @@ const App = () => {
 					<Grid paddingTop={3} item xs={12}>
 						<Item>
 							<Typography id="timer-label" align="center" variant="h6">
-								{!changeCount ? 'Session' : 'Break'}
+								{!changeCount.current ? 'Session' : 'Break'}
 							</Typography>
 							<Typography id="time-left" align="center" variant="h2">
-								{!changeCount
+								{/* {!changeCount.current
 									? `${getMinutes()}:${getSeconds()}`
-									: `${getMinutesBreak()}:${getSecondsBreak()}`}
+									: `${getMinutesBreak()}:${getSecondsBreak()}`} */}
+								{`${getMinutes()}:${getSeconds()}`}
 							</Typography>
 						</Item>
 					</Grid>
