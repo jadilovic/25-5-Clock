@@ -9,6 +9,7 @@ import PauseIcon from '@mui/icons-material/Pause';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import beep from './sound/beep.mp3';
 
 const Item = styled(Paper)(({ theme }) => ({
 	backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -21,17 +22,15 @@ const Item = styled(Paper)(({ theme }) => ({
 const App = () => {
 	const [breakLength, setBreakLength] = useState(0);
 	const [sessionLength, setSessionLength] = useState(0);
-	// const [timerSession, setTimerSession] = useState(0);
-	// const [timerBreak, setTimerBreak] = useState(0);
 	const [timeDisplay, setTimeDisplay] = useState(0);
 	const [intervalId, setIntervalId] = useState(0);
 	const [runningTimer, setRunningTimer] = useState(false);
 	let countSession = useRef(0);
 	let countBreak = useRef(0);
-	let changeCount = useRef(false);
+	const isSession = useRef(true);
 
 	const toChangeCount = () => {
-		changeCount.current = !changeCount.current;
+		isSession.current = !isSession.current;
 	};
 
 	const handleStartStop = (stopInterval) => {
@@ -50,28 +49,28 @@ const App = () => {
 		}
 
 		const newIntervalId = setInterval(() => {
-			console.log('change count : ', changeCount.current);
+			console.log('change count : ', isSession.current);
 			setRunningTimer(true);
 			if (countSession.current >= 0) {
-				//	setTimerSession((prevCount) => prevCount - 1);
 				setTimeDisplay((prevCount) => prevCount - 1);
 				countSession.current--;
+				if (countSession.current === 0) {
+					playAudio();
+				}
 				if (countSession.current < 0) {
-					//	setTimerSession((prevCount) => (prevCount = 0));
 					toChangeCount();
 					countBreak.current = breakLength * 60;
-					//		setTimerBreak(countBreak.current);
 					setTimeDisplay((prevCount) => (prevCount = countBreak.current));
 				}
 			} else {
-				//	setTimerBreak((prevCount) => prevCount - 1);
 				setTimeDisplay((prevCount) => prevCount - 1);
 				countBreak.current--;
+				if (countBreak.current === 0) {
+					playAudio();
+				}
 				if (countBreak.current < 0) {
-					//	setTimerBreak((prevCount) => (prevCount = 0));
 					toChangeCount();
 					countSession.current = sessionLength * 60;
-					//setTimerSession(countSession.current);
 					setTimeDisplay((prevCount) => (prevCount = countSession.current));
 				}
 			}
@@ -89,26 +88,14 @@ const App = () => {
 		return num.toString().padStart(2, '0');
 	};
 
-	// const getMinutesBreak = () => {
-	// 	const num = Math.floor(timerBreak / 60);
-	// 	return num.toString().padStart(2, '0');
-	// };
-
-	// const getSecondsBreak = () => {
-	// 	const num = timerBreak % 60;
-	// 	return num.toString().padStart(2, '0');
-	// };
-
 	useEffect(() => {
 		setSessionLength(25);
 		setBreakLength(5);
 	}, []);
 
 	useEffect(() => {
-		//	setTimerSession(sessionLength * 60);
 		setTimeDisplay(sessionLength * 60);
 		countSession.current = sessionLength * 60;
-		//		setTimerBreak(breakLength * 60);
 		countBreak.current = breakLength * 60;
 	}, [sessionLength, breakLength]);
 
@@ -147,27 +134,36 @@ const App = () => {
 	};
 
 	const handleReset = () => {
+		stopAudio();
 		handleStartStop(true);
 		setBreakLength(5);
 		setSessionLength(25);
-		//	setTimerSession(sessionLength * 60);
+		isSession.current = true;
+
 		setTimeDisplay(sessionLength * 60);
 		countSession.current = sessionLength * 60;
-		//		setTimerBreak(breakLength * 60);
 		countBreak.current = breakLength * 60;
 	};
 
+	const playAudio = () => {
+		var audio = document.getElementById('beep');
+		console.log(audio);
+		audio.play();
+	};
+
+	const stopAudio = () => {
+		var audio = document.getElementById('beep');
+		audio.pause();
+		audio.currentTime = 0.0;
+	};
+
 	console.log('session : ', timeDisplay);
-	//	console.log('break : ', timerBreak);
+	console.log('change count current : ', isSession.current);
 
 	return (
 		<Container maxWidth="sm">
 			<Box sx={{ paddingTop: 10, flexGrow: 1 }}>
-				<Grid
-					container
-					//		spacing={{ xs: 2, md: 3 }}
-					//		columns={{ xs: 4, sm: 8, md: 12 }}
-				>
+				<Grid container>
 					<Grid item xs={12}>
 						<Item>
 							<Typography align="center" variant="h3">
@@ -242,13 +238,11 @@ const App = () => {
 					<Grid paddingTop={3} item xs={12}>
 						<Item>
 							<Typography id="timer-label" align="center" variant="h6">
-								{!changeCount.current ? 'Session' : 'Break'}
+								{isSession.current ? 'Session' : 'Break'}
 							</Typography>
 							<Typography id="time-left" align="center" variant="h2">
-								{/* {!changeCount.current
-									? `${getMinutes()}:${getSeconds()}`
-									: `${getMinutesBreak()}:${getSecondsBreak()}`} */}
 								{`${getMinutes()}:${getSeconds()}`}
+								<audio id="beep" src={beep} />
 							</Typography>
 						</Item>
 					</Grid>
